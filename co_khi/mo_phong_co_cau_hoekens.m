@@ -11,21 +11,21 @@ clc; clear; close all;
 % Lưu ý đơn vị:
 %   - Tọa độ (mm), góc (rad), thời gian (s), vận tốc (mm/s)
 O = [0, 0];
-C = [72, 0];
+C = [54, 0];
 
 % Chiều dài các khâu/ bán kính ràng buộc hình học
-r1 = 35;   % OA
-r2 = 90;   % AB (ràng buộc: |B-A| = r2)
-r3 = 90;   % BC (ràng buộc: |B-C| = r3)
+r1 = 27;   % OA
+r2 = 67;   % AB (ràng buộc: |B-A| = r2)
+r3 = 67;   % BC (ràng buộc: |B-C| = r3)
 
 % Vận tốc góc của khâu dẫn (OA) - thay đổi omega1 ở đây
 omega1 = 5;              % rad/s
 
 % Miền làm việc của góc theta (rad)
 % Ở đây chọn quét từ theta_min đến theta_max.
-theta0 = 5*pi/6;           % góc ban đầu tại t = 0
-theta_min = 5*pi/6;        % góc nhỏ nhất
-theta_max = 7*pi/6;        % góc lớn nhất
+theta0 = 7*pi/9;           % góc ban đầu tại t = 0
+theta_min = 7*pi/9;        % góc nhỏ nhất
+theta_max = 11*pi/9;        % góc lớn nhất
 
 % Thời gian kết thúc tương ứng với quét góc [theta_min, theta_max]
 t_end = (theta_max-theta_min)/omega1;
@@ -236,33 +236,35 @@ end
 
 %% ====== METRIC (Sai số phần trăm so với giá trị trung bình) ======
 % Theo yêu cầu:
-%   err_cy(%) = max(abs(cy) - mean(cy)) * 100 / mean(cy)
-%   err_vx(%) = max(abs(vx) - mean(vx)) * 100 / mean(vx)
+%   err_cy(%) = max(abs(cy - mean(cy))) * 100 / abs(mean(cy))
+%   err_vx(%) = max(abs(vx - mean(vx))) * 100 / abs(mean(vx))
 % Trong đó:
 %   - cy là tọa độ y của điểm M (đặt tên cy cho báo cáo)
 %   - vx là tốc độ theo x của điểm M (đã lấy trị tuyệt đối nên luôn dương)
 cy_mean = mean(cy_hist, 'omitnan');
-cy_num = max(abs(cy_hist) - cy_mean, [], 'omitnan');
-if cy_mean == 0
+cy_dev_max = max(abs(cy_hist - cy_mean), [], 'omitnan');
+cy_denom = abs(cy_mean);
+if cy_denom == 0
     cy_err_pct = NaN;
 else
-    cy_err_pct = cy_num * 100 / cy_mean;
+    cy_err_pct = cy_dev_max * 100 / cy_denom;
 end
 
 vx_valid = vx_hist(isfinite(vx_hist));
 vx_mean = mean(vx_valid);
-vx_num = max(abs(vx_valid) - vx_mean);
-if vx_mean == 0
+vx_dev_max = max(abs(vx_valid - vx_mean));
+vx_denom = abs(vx_mean);
+if vx_denom == 0
     vx_err_pct = NaN;
 else
-    vx_err_pct = vx_num * 100 / vx_mean;
+    vx_err_pct = vx_dev_max * 100 / vx_denom;
 end
 
 fprintf('\n===== ĐÁNH GIÁ (%%) =====\n');
 fprintf('mean(cy) = %.6f mm\n', cy_mean);
-fprintf('err_cy(%%) = max(abs(cy) - mean(cy)) * 100 / mean(cy) = %.6f %%\n', cy_err_pct);
+fprintf('err_cy(%%) = max(abs(cy - mean(cy))) * 100 / abs(mean(cy)) = %.6f %%\n', cy_err_pct);
 fprintf('mean(vx) = %.6f mm/s\n', vx_mean);
-fprintf('err_vx(%%) = max(abs(vx) - mean(vx)) * 100 / mean(vx) = %.6f %%\n', vx_err_pct);
+fprintf('err_vx(%%) = max(abs(vx - mean(vx))) * 100 / abs(mean(vx)) = %.6f %%\n', vx_err_pct);
 
 fprintf('\n===== MÔ HÌNH TUYẾN TÍNH =====\n');
 fprintf('c_x = a*theta + b\n');
@@ -273,3 +275,9 @@ fprintf('RMSE(c_x) = %.6f mm\n', rmse_cx);
 fprintf('MAE(c_x) = %.6f mm\n', mae_cx);
 fprintf('max|err(c_x)| = %.6f mm\n', max_abs_err_cx);
 fprintf('max|err(c_x)| (%% of mean|c_x|) = %.6f %%\n', max_err_pct);
+
+fprintf('\n===== HÀNH TRÌNH c_x =====\n');
+fprintf('c_x(start) = %.6f mm\n', cx_hist(1));
+fprintf('c_x(end)   = %.6f mm\n', cx_hist(end));
+fprintf('Δc_x = c_x(end) - c_x(start) = %.6f mm\n', cx_hist(end) - cx_hist(1));
+fprintf('|Δc_x| = %.6f mm\n', abs(cx_hist(end) - cx_hist(1)));
