@@ -11,15 +11,15 @@ clc; clear; close all;
 % Lưu ý đơn vị:
 %   - Tọa độ (mm), góc (rad), thời gian (s), vận tốc (mm/s)
 O = [0, 0];
-C = [54, 0];
+C = [53, 0];
 
 % Chiều dài các khâu/ bán kính ràng buộc hình học
-r1 = 27;   % OA
-r2 = 67;   % AB (ràng buộc: |B-A| = r2)
-r3 = 67;   % BC (ràng buộc: |B-C| = r3)
+r1 = 28;   % OA
+r2 = 66;   % AB (ràng buộc: |B-A| = r2)
+r3 = 66;   % BC (ràng buộc: |B-C| = r3)
 
 % Vận tốc góc của khâu dẫn (OA) - thay đổi omega1 ở đây
-omega1 = 5;              % rad/s
+omega1 = 2;              % rad/s
 
 % Miền làm việc của góc theta (rad)
 % Ở đây chọn quét từ theta_min đến theta_max.
@@ -51,23 +51,56 @@ vx_hist = nan(N, 1);
 %% ====== FIGURE/AXES ======
 % Gộp mô phỏng + đồ thị c_x-theta vào 1 cửa sổ duy nhất
 figMain = figure;
+set(figMain, 'Color', 'w');
+set(figMain, 'Position', [100 100 1100 450]);
 tiled = tiledlayout(figMain, 1, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+%% ====== XUẤT VIDEO (OPTIONAL) ======
+% Nếu exportVideo = true, script sẽ ghi toàn bộ figure (cả 2 subplot) ra video.
+exportVideo = true;
+videoEveryNFrames = 1;      % =1: ghi mọi frame; tăng số này để nhẹ hơn
+videoFrameRate = 30;        % FPS của video xuất ra
+
+vw = [];
+videoPath = '';
+if exportVideo
+    outDir = fileparts(mfilename('fullpath'));
+    try
+        videoPath = fullfile(outDir, 'hoekens_animation.mp4');
+        vw = VideoWriter(videoPath, 'MPEG-4');
+    catch
+        % Fallback nếu máy/phiên bản MATLAB không hỗ trợ MPEG-4
+        videoPath = fullfile(outDir, 'hoekens_animation.avi');
+        vw = VideoWriter(videoPath, 'Motion JPEG AVI');
+    end
+    vw.FrameRate = videoFrameRate;
+    open(vw);
+end
 
 axSim = nexttile(tiled, 1);
 % Axes mô phỏng cơ cấu
-axis(axSim, 'equal'); grid(axSim, 'on'); hold(axSim, 'on')
-xlim(axSim, [-40 100])
-ylim(axSim, [-20 160])
+axis(axSim, 'equal'); grid(axSim, 'on'); box(axSim, 'on'); hold(axSim, 'on')
+xlim(axSim, [-40 85])
+ylim(axSim, [-20 120])
 xlabel(axSim, 'x (mm)')
 ylabel(axSim, 'y (mm)')
 
+% Đồng nhất “tỉ lệ box” giữa các subplot:
+% - axSim cần tỉ lệ dữ liệu 1:1 (axis equal)
+% - đặt PlotBoxAspectRatio theo tỉ lệ (range x : range y) để box không bị co nhỏ
+simBoxAspect = [diff(xlim(axSim)) diff(ylim(axSim)) 1];
+pbaspect(axSim, simBoxAspect);
+
 axThetaX = nexttile(tiled, 2);
-grid(axThetaX, 'on'); hold(axThetaX, 'on')
+grid(axThetaX, 'on'); box(axThetaX, 'on'); hold(axThetaX, 'on')
 % Đồ thị quan hệ c_x - theta: vẽ dạng điểm (không nối đoạn thẳng)
-hThetaX = plot(axThetaX, nan, nan, 'm.', 'LineStyle', 'none', 'MarkerSize', 10);
+hThetaX = plot(axThetaX, nan, nan, 'm.', 'LineStyle', 'none', 'MarkerSize', 5);
 xlabel(axThetaX, '\theta_1 (rad)')
 ylabel(axThetaX, 'c_x (mm)')
 title(axThetaX, 'Đồ thị quan hệ c_x - \theta_1')
+
+% Áp cùng tỉ lệ box sang đồ thị bên phải để 2 ô nhìn đồng đều
+pbaspect(axThetaX, pbaspect(axSim));
 
 %% ====== QUỸ ĐẠO KHÂU DẪN OA (VẼ TRƯỚC ANIMATION) ======
 % Yêu cầu: vẽ trước quỹ đạo OA rồi mới chạy animation.
@@ -183,6 +216,16 @@ for k = 1:length(t)
     % Cập nhật đồ thị quan hệ (theta, c_x) theo thời gian
     set(hThetaX, 'XData', theta_hist(1:k), 'YData', cx_hist(1:k));
     drawnow limitrate
+
+    % Ghi frame ra video
+    if exportVideo && ~isempty(vw) && mod(k-1, videoEveryNFrames) == 0
+        writeVideo(vw, getframe(figMain));
+    end
+end
+
+if exportVideo && ~isempty(vw)
+    close(vw);
+    fprintf('Đã xuất video: %s\n', videoPath);
 end
 
 %% ====== HỒI QUY TUYẾN TÍNH: c_x = a*theta + b ======
