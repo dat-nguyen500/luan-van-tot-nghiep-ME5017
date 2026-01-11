@@ -61,8 +61,8 @@ exportVideo = true;
 videoEveryNFrames = 1;      % =1: ghi mọi frame; tăng số này để nhẹ hơn
 videoFrameRate = 30;        % FPS của video xuất ra
 
-vw = [];
-videoPath = '';
+vw = []; %#ok<NASGU>
+videoPath = ''; %#ok<NASGU>
 if exportVideo
     outDir = fileparts(mfilename('fullpath'));
     try
